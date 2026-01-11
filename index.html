@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Java MC-Quiz – 12 aus 500 (Probeklausur-Stil, validiert)</title>
+  <title>Java MC-Quiz – 12 aus Pool (Probeklausur-Stil, validiert)</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;background:#f6f7fb;color:#0f172a}
     .app{max-width:980px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 12px 30px rgba(2,8,23,.08);overflow:hidden}
@@ -43,7 +43,7 @@
 <div class="app">
   <header>
     <div>
-      <h1>Java MC-Quiz – 12 aus 500 (Probeklausur-Stil)</h1>
+      <h1>Java MC-Quiz – 12 aus Pool (Probeklausur-Stil)</h1>
       <div class="meta">Random 12 Fragen pro Durchlauf • Antworten berechnet • Self-Check beim Start</div>
     </div>
     <div class="meta"><b>Pool:</b> <span id="poolSize">0</span> • <b>Quiz:</b> 12</div>
@@ -126,10 +126,6 @@ function assert(condition, msg) {
 }
 
 /** ---------- Question Model ---------- **/
-/**
- * We store "canonical" questions with correctIndex.
- * On each render we shuffle options and compute shuffledCorrectIndex.
- */
 function withShuffledOptions(q) {
   const pairs = q.options.map((text, i) => ({ text, i }));
   const shuffledPairs = shuffle(pairs);
@@ -140,13 +136,13 @@ function withShuffledOptions(q) {
 
 /** ---------- Generators (safe, computed) ---------- **/
 let nextId = 1;
+
 function mkQ({title, code=null, options, correctIndex, explain}) {
   return { id: nextId++, title, code, options, correctIndex, explain };
 }
 
 function mkSingleCorrectOptions(correctText, wrongTexts) {
-  const options = uniq([correctText, ...wrongTexts]).slice(0,4);
-  // If uniqueness reduced options <4, pad safely
+  const options = uniq([correctText, ...wrongTexts]).slice(0, 4);
   while (options.length < 4) options.push(`(Ablenkung ${options.length})`);
   const correctIndex = options.indexOf(correctText);
   return { options, correctIndex };
@@ -177,15 +173,14 @@ function genTools(n) {
 function genArithmetic(n) {
   const qs = [];
   for (let i=0;i<n;i++){
-    // generate expression of form a + b * c OR (a+b)*c
-    const a = 1 + (i*3)%9;          // 1..9
-    const b = 2 + (i*5)%8;          // 2..9
-    const c = 2 + (i*7)%7;          // 2..8
+    const a = 1 + (i*3)%9;
+    const b = 2 + (i*5)%8;
+    const c = 2 + (i*7)%7;
     const withParens = (i % 2 === 1);
     const expr = withParens ? `(${a} + ${b}) * ${c}` : `${a} + ${b} * ${c}`;
     const correct = withParens ? (a+b)*c : (a + b*c);
 
-    const wrong1 = withParens ? (a + b*c) : ((a+b)*c); // swapped precedence
+    const wrong1 = withParens ? (a + b*c) : ((a+b)*c);
     const wrong2 = correct + (i%3 ? 1 : -1);
     const wrong3 = correct + (i%4 ? 2 : -2);
 
@@ -230,7 +225,7 @@ function genIf(n) {
   for (let i=0;i<n;i++){
     const x = (i%2===0) ? 10 : 0;
     const cond = (i%3===0) ? "x < 5" : "x > 5";
-    const condTrue = eval(`${x} ${cond.replace("x","")}`); // safe: only > or <
+    const condTrue = eval(`${x} ${cond.replace("x","")}`); // safe in this controlled pattern
     const code =
 `int x = ${x};
 
@@ -283,7 +278,6 @@ function genArrays2D(n) {
     const kind = i % 3;
 
     if (kind === 0) {
-      // jagged creation
       const code =
 `int[][] arr = new int[3][];
 arr[0] = new int[1];
@@ -438,7 +432,7 @@ function genParsing(n) {
   return qs;
 }
 
-  /** Topic: ArrayList (Java Collections Basics) */
+/** Topic: ArrayList (Java Collections Basics) */
 function genArrayList(n) {
   const qs = [];
   const base = [
@@ -498,8 +492,6 @@ function genArrayList(n) {
 
   for (let i = 0; i < n; i++) {
     const b = base[i % base.length];
-
-    // kleine Variation: bei jeder 2. Frage Code-Variante statt reinem Text
     if (i % 2 === 0 && b.q.includes("ArrayList")) {
       const title = "Welche Zeile ist korrekt?";
       const code = `import java.util.*;\n\n// ...\n// Wähle die richtige Initialisierung`;
@@ -513,117 +505,62 @@ function genArrayList(n) {
   return qs;
 }
 
-/** Topic: Transfer / SE-Grundlagen (aus deinen 5 Textfragen) */
+/** Topic: Transfer / SE-Grundlagen (aus den Textfragen) */
 function genTransferSE(n) {
   const qs = [];
   const base = [
-    // Frage 1: Lastenheft vs Pflichtenheft
-    {
-      q: "Lastenheft: Perspektive?",
-      a: "Auftraggeber",
-      wrong: ["Auftragnehmer", "Tester", "Entwicklerteam"],
-      ex: "Lastenheft beschreibt WAS das System leisten soll – aus Auftraggeber-Sicht."
-    },
-    {
-      q: "Pflichtenheft: Perspektive?",
-      a: "Auftragnehmer",
-      wrong: ["Auftraggeber", "Nutzer", "Projektcontrolling"],
-      ex: "Pflichtenheft beschreibt WIE Anforderungen umgesetzt werden – aus Auftragnehmer-Sicht."
-    },
-    {
-      q: "Welche 3 Elemente passen typischerweise ins Lastenheft?",
-      a: "Projektbeschreibung + Anforderungen + Rahmenbedingungen",
-      wrong: [
-        "Systemarchitektur + technische Umsetzung + Change-Management",
-        "Unit-Tests + Integrationstests + Abnahmetests",
-        "Code-Struktur + Klassenhierarchie + Methodenliste"
-      ],
-      ex: "Lastenheft: funktionale/nicht-funktionale Anforderungen + organisatorischer Rahmen (z.B. Budget/Einschränkungen)."
-    },
-    {
-      q: "Welche 3 Elemente passen typischerweise ins Pflichtenheft?",
-      a: "Systemarchitektur + technische Umsetzung + Zeit/Projektplan",
-      wrong: [
-        "Wünsche/Ziele + grobe Idee + Marketingstrategie",
-        "Budget + Einschränkungen + Projektbeschreibung",
-        "Stakeholderliste + Persona + Customer Journey"
-      ],
-      ex: "Pflichtenheft: Architektur, technische Umsetzung, Zeit-/Projektplan inkl. Change-Management."
-    },
+    // Lastenheft vs Pflichtenheft
+    { q: "Lastenheft: Perspektive?", a: "Auftraggeber", wrong: ["Auftragnehmer", "Tester", "Entwicklerteam"],
+      ex: "Lastenheft beschreibt WAS das System leisten soll – aus Auftraggeber-Sicht." },
+    { q: "Pflichtenheft: Perspektive?", a: "Auftragnehmer", wrong: ["Auftraggeber", "Nutzer", "Projektcontrolling"],
+      ex: "Pflichtenheft beschreibt WIE Anforderungen umgesetzt werden – aus Auftragnehmer-Sicht." },
+    { q: "Welche 3 Elemente passen typischerweise ins Lastenheft?", a: "Projektbeschreibung + Anforderungen + Rahmenbedingungen",
+      wrong: ["Systemarchitektur + technische Umsetzung + Change-Management","Unit-Tests + Integrationstests + Abnahmetests","Code-Struktur + Klassenhierarchie + Methodenliste"],
+      ex: "Lastenheft: Anforderungen + organisatorischer Rahmen (z.B. Budget/Einschränkungen)." },
+    { q: "Welche 3 Elemente passen typischerweise ins Pflichtenheft?", a: "Systemarchitektur + technische Umsetzung + Zeit/Projektplan",
+      wrong: ["Wünsche/Ziele + grobe Idee + Marketingstrategie","Budget + Einschränkungen + Projektbeschreibung","Stakeholderliste + Persona + Customer Journey"],
+      ex: "Pflichtenheft: Architektur, technische Umsetzung, Zeit-/Projektplan inkl. Change-Management." },
 
-    // Frage 2: Top-Down vs Bottom-Up
-    {
-      q: "Top-Down beginnt typischerweise womit?",
-      a: "Übergeordneten Anforderungen",
+    // Top-Down vs Bottom-Up
+    { q: "Top-Down beginnt typischerweise womit?", a: "Übergeordneten Anforderungen",
       wrong: ["Konkreten Details", "Unit-Tests", "Datenbanktabellen"],
-      ex: "Top-Down: vom Groben ins Detail; danach Validierung."
-    },
-    {
-      q: "Bottom-Up beginnt typischerweise womit?",
-      a: "Konkreten Details/Modulen",
+      ex: "Top-Down: vom Groben ins Detail; danach Validierung." },
+    { q: "Bottom-Up beginnt typischerweise womit?", a: "Konkreten Details/Modulen",
       wrong: ["Vision/Strategie", "Pflichtenheft", "Grobkonzept"],
-      ex: "Bottom-Up: Details → Module → Gesamtanforderungen; danach Validierung."
-    },
+      ex: "Bottom-Up: Details → Module → Gesamtanforderungen; danach Validierung." },
 
-    // Frage 3: Vorgehensmodelle
-    {
-      q: "Wasserfallmodell ist am besten beschrieben als …",
-      a: "Sequenziell: Phasen nacheinander",
+    // Vorgehensmodelle
+    { q: "Wasserfallmodell ist am besten beschrieben als …", a: "Sequenziell: Phasen nacheinander",
       wrong: ["Iterativ: kurze Zyklen", "Parallel: alle Phasen gleichzeitig", "Ohne Tests"],
-      ex: "Wasserfall: Analyse → Entwurf → Implementierung → Test (streng nacheinander)."
-    },
-    {
-      q: "Was ist der Kern-Unterschied V-Modell vs Wasserfall?",
-      a: "Jeder Entwicklungsphase ist eine Testphase zugeordnet",
+      ex: "Wasserfall: Analyse → Entwurf → Implementierung → Test (streng nacheinander)." },
+    { q: "Was ist der Kern-Unterschied V-Modell vs Wasserfall?", a: "Jeder Entwicklungsphase ist eine Testphase zugeordnet",
       wrong: ["Es gibt keine Tests", "Es ist immer agil", "Es hat keine Phasen"],
-      ex: "V-Modell koppelt Entwicklung + passende Testphase für Qualität/Nachvollziehbarkeit."
-    },
-    {
-      q: "Agil bedeutet hier primär …",
-      a: "Iterationen + flexible Anpassung + kontinuierlich lauffähige Software",
+      ex: "V-Modell koppelt Entwicklung + passende Testphase für Qualität/Nachvollziehbarkeit." },
+    { q: "Agil bedeutet hier primär …", a: "Iterationen + flexible Anpassung + kontinuierlich lauffähige Software",
       wrong: ["Nur einmal liefern am Ende", "Keine Dokumentation erlaubt", "Phasen strikt nacheinander"],
-      ex: "Agil: kurze Zyklen, Feedback, Anpassung, laufende Inkremente."
-    },
+      ex: "Agil: kurze Zyklen, Feedback, Anpassung, laufende Inkremente." },
 
-    // Frage 4: Schwierigkeiten Anforderungsanalyse
-    {
-      q: "Welche Schwierigkeit ist typisch in der Anforderungsanalyse?",
-      a: "Kunde benennt Anforderungen unkonkret (nur Wünsche/Ziele)",
+    // Schwierigkeiten Anforderungsanalyse
+    { q: "Welche Schwierigkeit ist typisch in der Anforderungsanalyse?", a: "Kunde benennt Anforderungen unkonkret (nur Wünsche/Ziele)",
       wrong: ["Anforderungen sind immer vollständig", "Fachleute sind immer verfügbar", "Es gibt nie Änderungen"],
-      ex: "Oft fehlen konkrete Anforderungen; nur Ziele/Wünsche werden geäußert."
-    },
-    {
-      q: "Was meint man mit 'hidden agenda' im Kontext Anforderungsanalyse?",
-      a: "Beteiligte verzerren Anforderungen bewusst/unbewusst",
+      ex: "Oft fehlen konkrete Anforderungen; nur Ziele/Wünsche werden geäußert." },
+    { q: "Was meint man mit 'hidden agenda' im Kontext Anforderungsanalyse?", a: "Beteiligte verzerren Anforderungen bewusst/unbewusst",
       wrong: ["Es gibt geheime Passwörter", "Der Code ist verschlüsselt", "Das Lastenheft ist automatisch korrekt"],
-      ex: "Analyseteam/Kunde können Interessen verfolgen und Anforderungen verzerren."
-    },
-    {
-      q: "Welche Aussage ist korrekt?",
-      a: "Selbstverständliche Anforderungen werden oft nicht erwähnt",
+      ex: "Analyseteam/Kunde können Interessen verfolgen und Anforderungen verzerren." },
+    { q: "Welche Aussage ist korrekt?", a: "Selbstverständliche Anforderungen werden oft nicht erwähnt",
       wrong: ["Selbstverständliches wird immer explizit genannt", "Nicht-funktionale Anforderungen gibt es nicht", "Änderungen kommen nur am Anfang vor"],
-      ex: "Viele Anforderungen gelten als 'klar' und werden nicht ausgesprochen – Risiko für Missverständnisse."
-    },
+      ex: "Viele Anforderungen gelten als 'klar' und werden nicht ausgesprochen – Risiko für Missverständnisse." },
 
-    // Frage 5: Methoden Software Engineering
-    {
-      q: "Heuristische Methoden sind …",
-      a: "Erfahrungsbasierte Analyse-/Entwurfstechniken (z.B. OO-Modellierung)",
+    // Methoden Software Engineering
+    { q: "Heuristische Methoden sind …", a: "Erfahrungsbasierte Analyse-/Entwurfstechniken (z.B. OO-Modellierung)",
       wrong: ["Mathematisch formal bewiesen", "Nur Prototypen ohne Struktur", "Reine Code-Formatierung"],
-      ex: "Heuristisch = praxis-/erfahrungsbasiert, strukturiert modellieren/entwerfen."
-    },
-    {
-      q: "Formale Methoden nutzen …",
-      a: "Mathematisch präzise Spezifikationen zur Prüfung von Konsistenz/Korrektheit",
+      ex: "Heuristisch = praxis-/erfahrungsbasiert, strukturiert modellieren/entwerfen." },
+    { q: "Formale Methoden nutzen …", a: "Mathematisch präzise Spezifikationen zur Prüfung von Konsistenz/Korrektheit",
       wrong: ["Nur Bauchgefühl", "Nur UI-Mockups", "Nur Scrum-Meetings"],
-      ex: "Formal = mathematische Spezifikation + formale Verifikation."
-    },
-    {
-      q: "Prototyping dient hauptsächlich wozu?",
-      a: "Frühes Feedback + Validierung von Anforderungen/Funktionen",
+      ex: "Formal = mathematische Spezifikation + formale Verifikation." },
+    { q: "Prototyping dient hauptsächlich wozu?", a: "Frühes Feedback + Validierung von Anforderungen/Funktionen",
       wrong: ["Finale Version direkt ersetzen", "Tests komplett vermeiden", "Nur Dokumentation erzeugen"],
-      ex: "Prototypen: früh, unvollständig, zum Testen/Validieren/Feedback."
-    }
+      ex: "Prototypen: früh, unvollständig, zum Testen/Validieren/Feedback." }
   ];
 
   for (let i = 0; i < n; i++) {
@@ -634,12 +571,11 @@ function genTransferSE(n) {
   return qs;
 }
 
-
 /** ---------- Build (expandable) ---------- **/
 function buildCatalog() {
-  const = [];
+  const catalog = [];
 
-  // Base (dein bisheriger 500er Pool)
+  // Base (500)
   catalog.push(...genTools(40));
   catalog.push(...genArithmetic(120));
   catalog.push(...genIncrement(80));
@@ -653,11 +589,10 @@ function buildCatalog() {
   catalog.push(...genMethodsOOP(8));
   catalog.push(...genParsing(2));
 
-  // NEW: ArrayList + Transfer (Beispiel: +120 Fragen)
+  // New focus topics
   catalog.push(...genArrayList(80));
   catalog.push(...genTransferSE(120));
 
-  // Kein hartes 500-Limit mehr – aber Mindestcheck
   assert(catalog.length >= 500, `Katalog ist zu klein: ${catalog.length}`);
   return catalog;
 }
@@ -676,14 +611,13 @@ function validateCatalog(catalog) {
     assert(uniq(q.options).length === 4, `Frage ${q.id}: options enthalten Duplikate.`);
     assert(Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex < 4, `Frage ${q.id}: correctIndex ungültig.`);
     assert(typeof q.explain === "string" && q.explain.trim().length > 0, `Frage ${q.id}: explain fehlt.`);
-    // Optional sanity: forbid empty distractors
     assert(q.options.every(o => o.trim().length > 0), `Frage ${q.id}: leere Option.`);
   });
 }
 
 /** ---------- Quiz Engine ---------- **/
 const QUIZ_SIZE = 12;
-let = [];
+let CATALOG = [];
 let quiz = [];
 let idx = 0;
 let score = 0;
@@ -875,7 +809,6 @@ el("reviewOnlyWrongBtn").addEventListener("click", () => reset("wrong"));
     el("poolSize").textContent = String(CATALOG.length);
     reset("new");
   } catch (e) {
-    // Hard fail: do NOT run quiz with broken catalog
     const box = el("fatal");
     box.style.display = "block";
     box.textContent = "🚨 Quiz-Start gestoppt: " + (e?.message || String(e));
